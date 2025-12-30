@@ -1,19 +1,18 @@
-version: '3.8'
-
 services:
   # ZooKeeper for distributed coordination
   zookeeper:
-    image: bitnami/zookeeper:3.9
+    image: zookeeper:3.9.1
     container_name: dfac-zookeeper
     ports:
       - "2181:2181"
     environment:
+      - ZOO_MY_ID=1
       - ALLOW_ANONYMOUS_LOGIN=yes
-      - ZOO_SERVER_ID=1
     volumes:
-      - zk-data:/bitnami/zookeeper
+      - zk-data:/data
+      - zk-log:/datalog
     healthcheck:
-      test: [ "CMD", "zkServer.sh", "status" ]
+      test: [ "CMD-SHELL", "echo stat | nc localhost 2181 || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -97,10 +96,12 @@ services:
       - dfac-network
     restart: unless-stopped
 
+# GLOBAL CONFIGURATION (Declared only once)
 networks:
   dfac-network:
     driver: bridge
 
 volumes:
   zk-data:
+  zk-log:
   uploads:
