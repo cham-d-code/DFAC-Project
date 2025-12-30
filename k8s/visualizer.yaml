@@ -46,7 +46,7 @@ spec:
       containers:
         - name: visualizer
           # Replace with your ACR registry name
-          image: dfacregistry.azurecr.io/dfac-visualizer:v1
+          image: dfacregistry8551.azurecr.io/dfac-visualizer:v1
           ports:
             - containerPort: 8080
               name: http

@@ -11,7 +11,13 @@ metadata:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
 spec:
+  # TLS Configuration (Uncomment after installing cert-manager)
+  # tls:
+  #   - hosts:
+  #       - dfac.YOUR_IP.sslip.io
+  #     secretName: dfac-tls-secret
   rules:
+    # - host: dfac.YOUR_IP.sslip.io # Optional: restricts traffic to this domain
     - http:
         paths:
           - path: /

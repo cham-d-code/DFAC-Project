@@ -51,7 +51,7 @@ spec:
       containers:
         - name: replica-manager
           # Replace with your ACR registry name
-          image: dfacregistry.azurecr.io/dfac-replica-manager:v1
+          image: dfacregistry8551.azurecr.io/dfac-replica-manager:v1
           ports:
             - containerPort: 50051
               name: grpc

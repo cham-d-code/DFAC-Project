@@ -1,5 +1,4 @@
 # ZooKeeper StatefulSet for distributed coordination
-# Using StatefulSet for stable network identities and persistent storage
 apiVersion: v1
 kind: Service
 metadata:
@@ -37,7 +36,7 @@ metadata:
   name: zookeeper
 spec:
   serviceName: zookeeper-headless
-  replicas: 1  # Reduced for cost optimization (use 3 for production)
+  replicas: 1 
   selector:
     matchLabels:
       app: zookeeper
@@ -48,7 +47,8 @@ spec:
     spec:
       containers:
         - name: zookeeper
-          image: bitnami/zookeeper:3.9
+          # CHANGE: Using official stable image to avoid Bitnami pull errors
+          image: zookeeper:3.9.1 
           ports:
             - containerPort: 2181
               name: client
@@ -57,14 +57,12 @@ spec:
             - containerPort: 3888
               name: leader-election
           env:
+            - name: ZOO_MY_ID
+              value: "1"
+            - name: ZOO_SERVERS
+              value: "server.1=zookeeper-0.zookeeper-headless:2888:3888;2181"
             - name: ALLOW_ANONYMOUS_LOGIN
               value: "yes"
-            - name: ZOO_SERVER_ID
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            - name: ZOO_SERVERS
-              value: "zookeeper-0.zookeeper-headless:2888:3888,zookeeper-1.zookeeper-headless:2888:3888,zookeeper-2.zookeeper-headless:2888:3888"
           resources:
             requests:
               memory: "256Mi"
@@ -77,20 +75,20 @@ spec:
               command:
                 - /bin/bash
                 - -c
-                - echo ruok | nc localhost 2181 | grep imok
-            initialDelaySeconds: 30
+                - "echo ruok | nc localhost 2181 | grep imok"
+            initialDelaySeconds: 20
             periodSeconds: 10
           livenessProbe:
             exec:
               command:
                 - /bin/bash
                 - -c
-                - echo ruok | nc localhost 2181 | grep imok
-            initialDelaySeconds: 30
+                - "echo ruok | nc localhost 2181 | grep imok"
+            initialDelaySeconds: 20
             periodSeconds: 10
           volumeMounts:
             - name: data
-              mountPath: /bitnami/zookeeper
+              mountPath: /data # Official image uses /data instead of /bitnami
   volumeClaimTemplates:
     - metadata:
         name: data
