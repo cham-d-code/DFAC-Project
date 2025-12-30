@@ -1,0 +1,113 @@
+# Visualizer Deployment with 2 replicas
+apiVersion: v1
+kind: Service
+metadata:
+  name: dfac-visualizer-service
+  labels:
+    app: dfac-visualizer
+spec:
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+      name: http
+  selector:
+    app: dfac-visualizer
+  type: ClusterIP
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dfac-uploads-pvc
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: azurefile
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dfac-visualizer
+  labels:
+    app: dfac-visualizer
+spec:
+  replicas: 1  # Reduced for cost optimization (use 2+ for production)
+  selector:
+    matchLabels:
+      app: dfac-visualizer
+  template:
+    metadata:
+      labels:
+        app: dfac-visualizer
+    spec:
+      containers:
+        - name: visualizer
+          # Replace with your ACR registry name
+          image: dfacregistry.azurecr.io/dfac-visualizer:v1
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: REPLICA_MANAGER_HOST
+              value: "dfac-rm-service"
+            - name: REPLICA_MANAGER_PORT
+              value: "50051"
+            - name: SERVER_PORT
+              value: "8080"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /login
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /login
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 20
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: dfac-uploads-pvc
+      # Spread across nodes
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - dfac-visualizer
+                topologyKey: kubernetes.io/hostname
+---
+# Pod Disruption Budget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: dfac-visualizer-pdb
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: dfac-visualizer

@@ -1,0 +1,5 @@
+rootProject.name = 'DFAC-Project'
+include 'dfac-replica-manager'
+include 'dfac-worker'
+include 'dfac-common'
+include 'dfac-visualizer'

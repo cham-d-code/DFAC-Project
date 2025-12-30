@@ -1,0 +1,13 @@
+plugins {
+    id 'application'
+    id 'com.github.johnrengelman.shadow'
+}
+
+description = 'DFAC Replica Manager Module'
+
+mainClassName = 'com.dfac.replica_manager.ReplicaManagerServer'
+
+dependencies {
+    implementation project(':dfac-common')
+    implementation 'org.apache.curator:curator-test:5.5.0'
+}

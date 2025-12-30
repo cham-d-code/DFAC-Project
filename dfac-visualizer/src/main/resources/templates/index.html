@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org" xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DFAC Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .header h1 span {
+            color: #4facfe;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-badge {
+            background: rgba(79, 172, 254, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            color: #4facfe;
+            font-weight: 500;
+        }
+
+        .btn-logout {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(231, 76, 60, 0.8);
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .btn-logout:hover {
+            background: #e74c3c;
+            transform: translateY(-2px);
+        }
+
+        /* Status Panel */
+        .status-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .status-box {
+            padding: 25px;
+            text-align: center;
+            border-radius: 15px;
+            font-weight: bold;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .status-box:hover {
+            transform: translateY(-5px);
+        }
+
+        .healthy {
+            background: linear-gradient(135deg, #2ecc71, #27ae60);
+        }
+
+        .unhealthy {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+        }
+
+        /* Cards */
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            margin-bottom: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card h2 {
+            margin-bottom: 20px;
+            color: #fff;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card h2::before {
+            content: '';
+            width: 4px;
+            height: 24px;
+            background: linear-gradient(135deg, #4facfe, #00f2fe);
+            border-radius: 2px;
+        }
+
+        /* Upload Form */
+        .upload-form {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .file-input-wrapper {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .file-input {
+            width: 100%;
+            padding: 15px;
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-input:hover {
+            border-color: #4facfe;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-upload {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-upload:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(79, 172, 254, 0.4);
+        }
+
+        .btn-upload:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Table */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.8);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+        }
+
+        tr:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .lock-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .lock-status.locked {
+            background: rgba(241, 196, 15, 0.2);
+            color: #f1c40f;
+        }
+
+        .lock-status.unlocked {
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+        }
+
+        .owner-badge {
+            background: rgba(155, 89, 182, 0.2);
+            color: #9b59b6;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85rem;
+        }
+
+        .owner-badge.you {
+            background: rgba(79, 172, 254, 0.2);
+            color: #4facfe;
+        }
+
+        .btn-release {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #9b59b6, #8e44ad);
+            color: #fff;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+        }
+
+        .btn-release:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(155, 89, 182, 0.4);
+        }
+
+        .btn-delete {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background: rgba(231, 76, 60, 0.8);
+            color: #fff;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+            margin-left: 8px;
+        }
+
+        .btn-delete:hover {
+            background: #e74c3c;
+        }
+
+        .btn-request-access {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: #fff;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+        }
+
+        .btn-request-access:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn-request-access:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Notification */
+        .notification {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+            font-weight: 500;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .notification.success {
+            display: block;
+            background: rgba(46, 204, 113, 0.2);
+            color: #2ecc71;
+            border: 1px solid rgba(46, 204, 113, 0.3);
+        }
+
+        .notification.error {
+            display: block;
+            background: rgba(231, 76, 60, 0.2);
+            color: #e74c3c;
+            border: 1px solid rgba(231, 76, 60, 0.3);
+        }
+
+        .notification.info {
+            display: block;
+            background: rgba(241, 196, 15, 0.2);
+            color: #f1c40f;
+            border: 1px solid rgba(241, 196, 15, 0.3);
+        }
+
+        .empty-message {
+            text-align: center;
+            padding: 40px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <h1>D<span>FAC</span> System Visualizer</h1>
+            <div class="user-info">
+                <span class="user-badge" sec:authentication="name">Username</span>
+                <form th:action="@{/logout}" method="post" style="display: inline;">
+                    <button type="submit" class="btn-logout">Logout</button>
+                </form>
+            </div>
+        </header>
+
+        <!-- Notification Area -->
+        <div id="notification" class="notification"></div>
+
+        <!-- Status Panel -->
+        <div class="status-panel">
+            <div id="rm1-box" class="status-box healthy">RM1 Health: Checking...</div>
+            <div id="rm2-box" class="status-box healthy">RM2 Health: Checking...</div>
+        </div>
+
+        <!-- File Upload Card -->
+        <div class="card">
+            <h2>Upload File</h2>
+            <form id="upload-form" class="upload-form" enctype="multipart/form-data">
+                <div class="file-input-wrapper">
+                    <input type="file" id="file-input" name="file" class="file-input" required>
+                </div>
+                <button type="submit" class="btn-upload" id="upload-btn">
+                    Upload & Lock
+                </button>
+            </form>
+        </div>
+
+        <!-- File Lock State Table -->
+        <div class="card">
+            <h2>File Lock State</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>File Name</th>
+                        <th>Owner</th>
+                        <th>Status</th>
+                        <th>Lock Time</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="file-table-body">
+                    <tr>
+                        <td colspan="5" class="empty-message">Loading files...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Poll for status updates every 3 seconds
+        setInterval(fetchStatus, 3000);
+        setInterval(fetchFiles, 3000);
+
+        // Initial fetch
+        fetchStatus();
+        fetchFiles();
+
+        async function fetchStatus() {
+            try {
+                const response = await fetch('/api/status');
+                const data = await response.json();
+
+                updateHealthBox('rm1-box', 'RM1', data.rm1Healthy);
+                updateHealthBox('rm2-box', 'RM2', data.rm2Healthy);
+            } catch (e) {
+                console.error("Error fetching status:", e);
+            }
+        }
+
+        function updateHealthBox(elementId, name, isHealthy) {
+            const el = document.getElementById(elementId);
+            if (isHealthy) {
+                el.className = 'status-box healthy';
+                el.innerText = name + ' Health: ONLINE';
+            } else {
+                el.className = 'status-box unhealthy';
+                el.innerText = name + ' Health: OFFLINE';
+            }
+        }
+
+        async function fetchFiles() {
+            try {
+                const response = await fetch('/api/files');
+                const files = await response.json();
+
+                const tbody = document.getElementById('file-table-body');
+
+                if (files.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="empty-message">No files uploaded yet. Upload a file to get started!</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = files.map(file => `
+                <tr>
+                    <td>${escapeHtml(file.fileName)}</td>
+                    <td>
+                        <span class="owner-badge ${file.isOwner ? 'you' : ''}">${escapeHtml(file.owner)}${file.isOwner ? ' (You)' : ''}</span>
+                    </td>
+                    <td>
+                        <span class="lock-status ${file.locked ? 'locked' : 'unlocked'}">
+                            ${file.locked ? '🔒 Locked' : '🔓 Unlocked'}
+                        </span>
+                    </td>
+                    <td>${file.lockTime || '-'}</td>
+                    <td>
+                        ${file.isOwner && file.locked ? `<button class="btn-release" onclick="releaseLock('${file.id}')">Release Lock</button>` : ''}
+                        ${file.isOwner ? `<button class="btn-delete" onclick="deleteFile('${file.id}')">Delete</button>` : ''}
+                        ${!file.isOwner && !file.locked ? `<button class="btn-request-access" onclick="requestAccess('${file.id}')">Request Access</button>` : ''}
+                        ${!file.isOwner && file.locked ? `<button class="btn-request-access" disabled title="File is locked by ${escapeHtml(file.owner)}">Locked</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
+            } catch (e) {
+                console.error("Error fetching files:", e);
+            }
+        }
+
+        // File upload handler
+        document.getElementById('upload-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const fileInput = document.getElementById('file-input');
+            const uploadBtn = document.getElementById('upload-btn');
+
+            if (!fileInput.files[0]) {
+                showNotification('Please select a file to upload', 'error');
+                return;
+            }
+
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = 'Uploading...';
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch('/api/files/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification(`File "${result.fileName}" uploaded and locked successfully!`, 'success');
+                    fileInput.value = '';
+                    fetchFiles();
+                } else {
+                    showNotification(result.message || 'Upload failed', 'error');
+                }
+            } catch (e) {
+                showNotification('Error uploading file: ' + e.message, 'error');
+            } finally {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = 'Upload & Lock';
+            }
+        });
+
+        async function releaseLock(fileId) {
+            showNotification('Releasing lock...', 'info');
+
+            try {
+                const response = await fetch(`/api/files/${fileId}/release`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification('Lock released successfully!', 'success');
+                    fetchFiles();
+                } else {
+                    showNotification(result.message || 'Failed to release lock', 'error');
+                }
+            } catch (e) {
+                showNotification('Error releasing lock: ' + e.message, 'error');
+            }
+        }
+
+        async function deleteFile(fileId) {
+            if (!confirm('Are you sure you want to delete this file?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/files/${fileId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification('File deleted successfully!', 'success');
+                    fetchFiles();
+                } else {
+                    showNotification(result.message || 'Failed to delete file', 'error');
+                }
+            } catch (e) {
+                showNotification('Error deleting file: ' + e.message, 'error');
+            }
+        }
+
+        async function requestAccess(fileId) {
+            showNotification('Requesting access...', 'info');
+
+            try {
+                const response = await fetch(`/api/files/${fileId}/request-access`, {
+                    method: 'POST'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification('Access granted! You now have the lock on this file.', 'success');
+                    fetchFiles();
+                } else {
+                    showNotification(result.message || 'Failed to request access', 'error');
+                }
+            } catch (e) {
+                showNotification('Error requesting access: ' + e.message, 'error');
+            }
+        }
+
+        function showNotification(message, type) {
+            const notif = document.getElementById('notification');
+            notif.textContent = message;
+            notif.className = 'notification ' + type;
+
+            setTimeout(() => {
+                notif.className = 'notification';
+            }, 5000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+
+</body>
+
+</html>

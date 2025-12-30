@@ -1,0 +1,38 @@
+> Task :dfac-common:extractIncludeProto UP-TO-DATE
+> Task :dfac-common:extractProto UP-TO-DATE
+> Task :dfac-common:generateProto NO-SOURCE
+> Task :dfac-common:compileJava UP-TO-DATE
+> Task :dfac-common:processResources NO-SOURCE
+> Task :dfac-common:classes UP-TO-DATE
+> Task :dfac-common:jar UP-TO-DATE
+> Task :dfac-replica-manager:extractIncludeProto UP-TO-DATE
+> Task :dfac-replica-manager:extractProto UP-TO-DATE
+> Task :dfac-replica-manager:generateProto UP-TO-DATE
+
+> Task :dfac-replica-manager:compileJava FAILED
+D:\DISTRIBUTED\DFAC-Project\dfac-replica-manager\src\main\java\com\dfac\replica_manager\ReplicaManagerServer.java:62: error: local variables referenced from a lambda expression must be final or effectively final
+            if (zkServer != null) {
+                ^
+D:\DISTRIBUTED\DFAC-Project\dfac-replica-manager\src\main\java\com\dfac\replica_manager\ReplicaManagerServer.java:64: error: local variables referenced from a lambda expression must be final or effectively final
+                    zkServer.close();
+                    ^
+2 errors
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':dfac-replica-manager:compileJava'.
+> Compilation failed; see the compiler error output for details.
+
+* Try:
+> Run with --info option to get more log output.
+> Run with --scan to get full insights.
+
+Deprecated Gradle features were used in this build, making it incompatible with Gradle 9.0.
+
+You can use '--warning-mode all' to show the individual deprecation warnings and determine if they come from your own scripts or plugins.
+
+For more on this, please refer to https://docs.gradle.org/8.5/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
+
+BUILD FAILED in 2s
+8 actionable tasks: 1 executed, 7 up-to-date

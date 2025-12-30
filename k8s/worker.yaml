@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dfac-worker
+  labels:
+    app: dfac-worker
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: dfac-worker
+  template:
+    metadata:
+      labels:
+        app: dfac-worker
+    spec:
+      containers:
+      - name: dfac-worker
+        image: dfac-worker:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: RM_SERVICE_ADDRESS
+          value: "dfac-rm-service.default.svc.cluster.local"
+        - name: RM_SERVICE_PORT
+          value: "50051"

@@ -1,0 +1,106 @@
+version: '3.8'
+
+services:
+  # ZooKeeper for distributed coordination
+  zookeeper:
+    image: bitnami/zookeeper:3.9
+    container_name: dfac-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+      - ZOO_SERVER_ID=1
+    volumes:
+      - zk-data:/bitnami/zookeeper
+    healthcheck:
+      test: [ "CMD", "zkServer.sh", "status" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - dfac-network
+
+  # Replica Manager 1
+  replica-manager-1:
+    build:
+      context: .
+      dockerfile: dfac-replica-manager/Dockerfile
+    container_name: dfac-rm-1
+    ports:
+      - "50051:50051"
+    environment:
+      - ZOOKEEPER_CONNECT=zookeeper:2181
+      - POD_NAME=rm-1
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    networks:
+      - dfac-network
+    restart: unless-stopped
+
+  # Replica Manager 2 (Fault Tolerance)
+  replica-manager-2:
+    build:
+      context: .
+      dockerfile: dfac-replica-manager/Dockerfile
+    container_name: dfac-rm-2
+    ports:
+      - "50052:50051"
+    environment:
+      - ZOOKEEPER_CONNECT=zookeeper:2181
+      - POD_NAME=rm-2
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    networks:
+      - dfac-network
+    restart: unless-stopped
+
+  # Replica Manager 3 (Fault Tolerance)
+  replica-manager-3:
+    build:
+      context: .
+      dockerfile: dfac-replica-manager/Dockerfile
+    container_name: dfac-rm-3
+    ports:
+      - "50053:50051"
+    environment:
+      - ZOOKEEPER_CONNECT=zookeeper:2181
+      - POD_NAME=rm-3
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    networks:
+      - dfac-network
+    restart: unless-stopped
+
+  # Visualizer Web App
+  visualizer:
+    build:
+      context: .
+      dockerfile: dfac-visualizer/Dockerfile
+    container_name: dfac-visualizer
+    ports:
+      - "8080:8080"
+    environment:
+      - REPLICA_MANAGER_HOST=replica-manager-1
+      - REPLICA_MANAGER_PORT=50051
+      - REPLICA_MANAGER_2_HOST=replica-manager-2
+      - REPLICA_MANAGER_2_PORT=50051
+    depends_on:
+      - replica-manager-1
+      - replica-manager-2
+      - replica-manager-3
+    volumes:
+      - uploads:/app/uploads
+    networks:
+      - dfac-network
+    restart: unless-stopped
+
+networks:
+  dfac-network:
+    driver: bridge
+
+volumes:
+  zk-data:
+  uploads:

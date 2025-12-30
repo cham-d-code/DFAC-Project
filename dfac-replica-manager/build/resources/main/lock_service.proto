@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package com.dfac.replica_manager;
+
+option java_multiple_files = true;
+option java_package = "com.dfac.replica_manager.grpc";
+option java_outer_classname = "LockServiceProto";
+
+service LockService {
+  rpc RequestLock (LockRequest) returns (LockResponse);
+  rpc ReleaseLock (LockRequest) returns (LockResponse);
+}
+
+message LockRequest {
+  string file_id = 1;
+  string user_id = 2;
+  string auth_token = 3;
+  int64 lamport_time = 4;
+}
+
+enum LockStatus {
+  GRANTED = 0;
+  DENIED = 1;
+  SYSTEM_DOWN = 2;
+}
+
+message LockResponse {
+  LockStatus status = 1;
+  int64 lamport_time = 2;
+}

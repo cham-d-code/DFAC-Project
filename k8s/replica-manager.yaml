@@ -1,0 +1,109 @@
+# Replica Manager Deployment with 3 replicas for fault tolerance
+apiVersion: v1
+kind: Service
+metadata:
+  name: dfac-rm-service
+  labels:
+    app: dfac-rm
+spec:
+  ports:
+    - port: 50051
+      targetPort: 50051
+      protocol: TCP
+      name: grpc
+  selector:
+    app: dfac-rm
+  type: ClusterIP
+---
+# Headless service for direct pod addressing
+apiVersion: v1
+kind: Service
+metadata:
+  name: dfac-rm-headless
+  labels:
+    app: dfac-rm
+spec:
+  ports:
+    - port: 50051
+      targetPort: 50051
+      protocol: TCP
+      name: grpc
+  clusterIP: None
+  selector:
+    app: dfac-rm
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dfac-rm
+  labels:
+    app: dfac-rm
+spec:
+  replicas: 2  # Reduced for cost optimization (use 3 for production)
+  selector:
+    matchLabels:
+      app: dfac-rm
+  template:
+    metadata:
+      labels:
+        app: dfac-rm
+    spec:
+      containers:
+        - name: replica-manager
+          # Replace with your ACR registry name
+          image: dfacregistry.azurecr.io/dfac-replica-manager:v1
+          ports:
+            - containerPort: 50051
+              name: grpc
+          env:
+            - name: ZOOKEEPER_CONNECT
+              value: "zookeeper:2181"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            tcpSocket:
+              port: 50051
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 50051
+            initialDelaySeconds: 60
+            periodSeconds: 20
+      # Anti-affinity to spread pods across nodes
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - dfac-rm
+                topologyKey: kubernetes.io/hostname
+---
+# Pod Disruption Budget for high availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: dfac-rm-pdb
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: dfac-rm
