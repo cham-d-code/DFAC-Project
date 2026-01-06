@@ -175,6 +175,24 @@ public class FileStorageService {
                 file.setLockLamportTime(response.getLamportTime());
                 return new AccessResult(true, "Lock acquired successfully");
             } else {
+                // Attempt recovery: The lock might differ between Visualizer (unlocked) and RM
+                // (locked/zombie)
+                // Try to release it explicitly to clear any zombie state, then retry.
+                System.out.println("Lock denied. Attempting to clear potential zombie lock and retry...");
+                var releaseResponse = grpcClientService.releaseLockForUser(fileId, userId, username);
+
+                if (releaseResponse.getStatus().name().equals("GRANTED")) {
+                    // Retry acquire
+                    var retryResponse = grpcClientService.requestLockForUser(fileId, userId, username);
+                    if (retryResponse.getStatus().name().equals("GRANTED")) {
+                        file.setOwnerId(userId);
+                        file.setOwnerUsername(username);
+                        file.setLocked(true);
+                        file.setLockLamportTime(retryResponse.getLamportTime());
+                        return new AccessResult(true, "Lock acquired successfully after recovery");
+                    }
+                }
+
                 return new AccessResult(false, "Lock request was denied by the Replica Manager");
             }
         } catch (Exception e) {

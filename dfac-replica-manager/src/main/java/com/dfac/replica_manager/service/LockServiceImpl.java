@@ -125,10 +125,21 @@ public class LockServiceImpl extends LockServiceGrpc.LockServiceImplBase {
                 status = LockStatus.DENIED;
             }
         } else {
-            // Lock not found or not held by this RM
-            status = LockStatus.DENIED;
-            // Or GRANTED if we consider "releasing a non-existent lock" as success?
-            // Usually strict locking implies error.
+            // Lock not found in memory (could be a zombie lock from a crashed session)
+            String lockPath = "/locks/" + fileId;
+            try {
+                if (client.checkExists().forPath(lockPath) != null) {
+                    System.out.println("Found zombie lock for file " + fileId + ". Force releasing.");
+                    client.delete().forPath(lockPath);
+                    status = LockStatus.GRANTED;
+                } else {
+                    // Lock really doesn't exist
+                    status = LockStatus.DENIED;
+                }
+            } catch (Exception e) {
+                System.err.println("Error checking/deleting zombie lock: " + e.getMessage());
+                status = LockStatus.SYSTEM_DOWN;
+            }
         }
 
         // 2. Increment clock before sending response
